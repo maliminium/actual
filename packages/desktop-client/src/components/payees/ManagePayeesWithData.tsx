@@ -5,9 +5,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { listen, send } from 'loot-core/platform/client/connection';
 import * as undo from 'loot-core/platform/client/undo';
 import type { UndoState } from 'loot-core/server/undo';
+import { q } from 'loot-core/shared/query';
 import { applyChanges } from 'loot-core/shared/util';
 import type { Diff } from 'loot-core/shared/util';
-import type { NewRuleEntity, PayeeEntity } from 'loot-core/types/models';
+import type {
+  NewRuleEntity,
+  PayeeEntity,
+  TransactionEntity,
+} from 'loot-core/types/models';
 
 import { ManagePayees } from './ManagePayees';
 
@@ -16,6 +21,7 @@ import { usePayeeRuleCounts } from '@desktop-client/hooks/usePayeeRuleCounts';
 import { usePayees } from '@desktop-client/hooks/usePayees';
 import { pushModal } from '@desktop-client/modals/modalsSlice';
 import { payeeQueries } from '@desktop-client/payees';
+import { aqlQuery } from '@desktop-client/queries/aqlQuery';
 import { useDispatch } from '@desktop-client/redux';
 
 type ManagePayeesWithDataProps = {
@@ -142,6 +148,39 @@ export function ManagePayeesWithData({
         queryClient.setQueryData(
           payeeQueries.listOrphaned().queryKey,
           filteredOrphans,
+        );
+      }}
+      onCopyToNotesAndDelete={async (selectedIds: string[]) => {
+        const payeeMap = new Map(payees.map(p => [p.id, p.name]));
+
+        const { data: transactions } = await aqlQuery(
+          q('transactions')
+            .filter({ payee: { $oneof: selectedIds } })
+            .select(['id', 'payee', 'notes']),
+        );
+
+        const toUpdate = (
+          transactions as Pick<TransactionEntity, 'id' | 'payee' | 'notes'>[]
+        )
+          .map(t => ({
+            id: t.id,
+            notes: payeeMap.get(t.payee ?? '') ?? '',
+          }))
+          .filter(t => t.notes);
+
+        if (toUpdate.length > 0) {
+          await send('transactions-batch-update', { updated: toUpdate });
+        }
+
+        const changes: Diff<PayeeEntity> = {
+          deleted: selectedIds.map(id => ({ id })),
+          updated: [],
+          added: [],
+        };
+        await send('payees-batch-change', changes);
+        queryClient.setQueryData(
+          payeeQueries.listOrphaned().queryKey,
+          existing => applyChanges(changes, existing ?? []),
         );
       }}
       onViewRules={onViewRules}

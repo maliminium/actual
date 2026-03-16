@@ -1,7 +1,11 @@
 import { Trans, useTranslation } from 'react-i18next';
 
 import { SvgDelete, SvgMerge } from '@actual-app/components/icons/v0';
-import { SvgBookmark, SvgLightBulb } from '@actual-app/components/icons/v1';
+import {
+  SvgBookmark,
+  SvgClipboard,
+  SvgLightBulb,
+} from '@actual-app/components/icons/v1';
 import { Menu } from '@actual-app/components/menu';
 import type { MenuItem } from '@actual-app/components/menu';
 import { theme } from '@actual-app/components/theme';
@@ -18,6 +22,7 @@ type PayeeMenuProps = {
   onMerge: () => Promise<void>;
   onFavorite: () => void;
   onLearn: () => void;
+  onCopyToNotesAndDelete: () => Promise<void>;
   onClose: () => void;
 };
 
@@ -28,6 +33,7 @@ export function PayeeMenu({
   onMerge,
   onFavorite,
   onLearn,
+  onCopyToNotesAndDelete,
   onClose,
 }: PayeeMenuProps) {
   const { t } = useTranslation();
@@ -65,6 +71,13 @@ export function PayeeMenu({
       text: t('Merge'),
       disabled: isDisabled || selectedPayees.size < 2,
     },
+    {
+      icon: SvgClipboard,
+      iconSize: 9,
+      name: 'copy-to-notes-and-delete',
+      text: t('Copy to notes & delete'),
+      disabled: isDisabled,
+    },
   ];
 
   if (isLearnCategoriesEnabled) {
@@ -95,6 +108,9 @@ export function PayeeMenu({
             break;
           case 'learn':
             onLearn();
+            break;
+          case 'copy-to-notes-and-delete':
+            void onCopyToNotesAndDelete();
             break;
           default:
         }

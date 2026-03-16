@@ -68,6 +68,7 @@ type ManagePayeesProps = {
   onViewRules: ComponentProps<typeof PayeeTable>['onViewRules'];
   onCreateRule: ComponentProps<typeof PayeeTable>['onCreateRule'];
   onMerge: (ids: string[]) => Promise<void>;
+  onCopyToNotesAndDelete: (ids: string[]) => Promise<void>;
 };
 
 export const ManagePayees = ({
@@ -196,6 +197,13 @@ export const ManagePayees = ({
     selected.dispatch({ type: 'select-none' });
   }
 
+  async function onCopyToNotesAndDelete() {
+    const ids = [...selected.items];
+    await props.onCopyToNotesAndDelete(ids);
+
+    selected.dispatch({ type: 'select-none' });
+  }
+
   const onChangeCategoryLearning = useCallback(() => {
     dispatch(pushModal({ modal: { name: 'payee-category-learning' } }));
   }, [dispatch]);
@@ -246,6 +254,7 @@ export const ManagePayees = ({
               onMerge={onMerge}
               onFavorite={onFavorite}
               onLearn={onLearn}
+              onCopyToNotesAndDelete={onCopyToNotesAndDelete}
             />
           </Popover>
         </View>
